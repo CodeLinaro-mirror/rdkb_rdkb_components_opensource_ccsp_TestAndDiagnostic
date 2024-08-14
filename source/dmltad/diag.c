@@ -496,7 +496,7 @@ static void *diag_task(void *arg)
             break;
     }
 
-#if defined(_PLATFORM_RASPBERRYPI_) || (_PLATFORM_TURRIS_)
+#if defined(_PLATFORM_RASPBERRYPI_) || (_PLATFORM_TURRIS_) || defined(_PLATFORM_BANANAPI_R4_)
 /**
  inet_pton is failing because of extra quotes in ip address (cfg.host)
 **/
