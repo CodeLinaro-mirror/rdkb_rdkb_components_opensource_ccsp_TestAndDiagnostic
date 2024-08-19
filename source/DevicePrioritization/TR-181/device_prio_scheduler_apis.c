@@ -27,6 +27,46 @@
 extern int sysevent_fd;
 extern token_t sysevent_token;
 
+#define MAX_DSCP_CLIENTS_SUPPORTED 100
+
+typedef struct marking {
+    char dscp_marking[8];
+    unsigned int connmark;
+    char direction[32];
+} marking_t;
+
+marking_t dscp_marking_table[MAX_DSCP_CLIENTS_SUPPORTED] ;
+
+void updateMarkingStruct(marking_t *marking, char *dscp_marking, unsigned int connmark, char* direction) {
+    strncpy(marking->dscp_marking, dscp_marking, sizeof(marking->dscp_marking)-1);
+    marking->connmark = connmark;
+    strncpy(marking->direction, direction, sizeof(marking->direction)-1);
+}
+
+#define DSCP_TO_CONNMARK_MAP_DOES_NOT_EXIST -1
+#define DSCP_TO_CONNMARK_MAP_EXIST 0
+
+int checkIfDscpToConnmarkMapExists(char *dscp_marking, unsigned int *connmark, char* direction) {
+
+    if (dscp_marking == NULL || connmark == NULL) {
+        CcspTraceError(("%s: Invalid input parameters\n", __FUNCTION__));
+        return DSCP_TO_CONNMARK_MAP_DOES_NOT_EXIST;
+    }
+
+    for (int i = 0; i < MAX_DSCP_CLIENTS_SUPPORTED; i++) {
+        if ( dscp_marking_table[i].connmark == 0 ) {
+            break;
+        }
+        
+        else if ( (strcmp(dscp_marking_table[i].dscp_marking, dscp_marking) == 0) && (strcmp(dscp_marking_table[i].direction, direction) == 0) ) {
+            *connmark = dscp_marking_table[i].connmark;
+            return DSCP_TO_CONNMARK_MAP_EXIST;
+        }
+    }
+
+    return DSCP_TO_CONNMARK_MAP_DOES_NOT_EXIST;
+}
+
 #if 0
 void checkIfConnmarkIxists()
 {
@@ -164,7 +204,9 @@ void priomac_operation(char* priomac_str_bundle) {
     char syscfg_param[64] = {0};
     char buf[10] = {0};
     unsigned int connmark = 0x800; // Starting bit
-
+    unsigned int connmark_temp = 0; // Starting bit
+    int markingTableIndex = 0;
+    memset(dscp_marking_table, 0, sizeof(dscp_marking_table));
     if (0 != clean_prev_syscfg_params()) {
         CcspTraceWarning(("%s: clean_prev_syscfg_params() nothing to clean\n", __FUNCTION__));
     }
@@ -196,6 +238,7 @@ void priomac_operation(char* priomac_str_bundle) {
         int num_fields = sscanf(line, "%[^,],%[^,],%31s", mac_address, dscp_str, action);
         if (num_fields == 3) 
         {
+            connmark_temp=0;
             /*Increment total number of prio clients count in current schedule*/
             prio_clients_count++;
 
@@ -230,15 +273,27 @@ void priomac_operation(char* priomac_str_bundle) {
 
             memset(syscfg_param, 0, sizeof(syscfg_param));
 
-            CcspTraceInfo(("Connmark: 0x%X \n", connmark));
+            if (checkIfDscpToConnmarkMapExists(dscp_str, &connmark_temp,action) == DSCP_TO_CONNMARK_MAP_DOES_NOT_EXIST) {
+                CcspTraceInfo(("DSCP marking %s does not exist in the table, adding it\n", dscp_str));
+                updateMarkingStruct(&dscp_marking_table[markingTableIndex], dscp_str, connmark,action);
+                markingTableIndex++;
+                connmark_temp = connmark;
+                connmark <<= 1; // Shift left by one position to enable the next bit
+            }
+            else {
+                CcspTraceInfo(("DSCP marking %s already exists in the table, connmark is 0x%X\n", dscp_str,connmark_temp));
+               // connmark = connmark_temp;
+            }
+            CcspTraceInfo(("Connmark: 0x%X \n", connmark_temp));
             if ( connmark == 0 ) {
                 CcspTraceError(("Failure: Value exceeded 0xFFFFFFFF.\n"));  
                 free(buffer);
                 return;
-            }            
+            }
+                        
             snprintf(syscfg_param, sizeof(syscfg_param), "%s_%d", SYSCFG_PRIO_CLIENT_CONNMARK_PREFIX, prio_clients_count);
             memset(cConnMark, 0, sizeof(cConnMark));
-            snprintf(cConnMark, sizeof(cConnMark), "0x%X", connmark);
+            snprintf(cConnMark, sizeof(cConnMark), "0x%X", connmark_temp);
             if(syscfg_set_commit(NULL, syscfg_param, cConnMark) != 0)
             {
                 CcspTraceError(("syscfg_set failed for %s\n", syscfg_param));
@@ -252,7 +307,6 @@ void priomac_operation(char* priomac_str_bundle) {
         CcspTraceInfo(("%s: 'Client %d' --> Mac:%s, Dscp:%s, Action:%s\n", 
                         __FUNCTION__, prio_clients_count, mac_address, dscp_str, action));
 
-        connmark <<= 1; // Shift left by one position to enable the next bit
         memset(mac_address, 0, sizeof(mac_address));
         memset(action, 0, sizeof(action));
         memset(dscp_str, 0, sizeof(dscp_str));
