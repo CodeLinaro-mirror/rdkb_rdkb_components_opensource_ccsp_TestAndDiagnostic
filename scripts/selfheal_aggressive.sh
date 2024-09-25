@@ -1213,7 +1213,7 @@ self_heal_dhcp_clients()
         if [ "$WAN_STATUS" = "started" ]; then
             if [ "$BOX_TYPE" != "HUB4" ] && [ "$BOX_TYPE" != "SR300" ] && [ "$BOX_TYPE" != "SE501" ] && [ "$BOX_TYPE" != "SR213" ] && [ "$BOX_TYPE" != "WNXL11BWL" ] && [ "$BOX_TYPE" != "SCER11BEL" ]; then
                 if [ $wan_dhcp_client_v4 -eq 0 ] && [ "x$MAPT_CONFIG" != "xset" ] && [ $DHCPV4C_STATUS != "false" ]; then
-                    if [ "$MANUFACTURE" = "Technicolor" ]; then
+                    if [ "$MANUFACTURE" = "Technicolor" ] || [ "$MANUFACTURE" = "Sercomm" ]; then
                         V4_EXEC_CMD="sysevent set dhcp_client-start"
                     elif [ "$WAN_TYPE" = "EPON" ]; then
                         echo_t "Calling epon_utility.sh to restart udhcpc "
