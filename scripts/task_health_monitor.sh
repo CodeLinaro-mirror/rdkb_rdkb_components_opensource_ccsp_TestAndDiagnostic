@@ -2919,7 +2919,7 @@ if ([ "$SELFHEAL_TYPE" = "BASE" ] || [ "$WiFi_Flag" = "false" ]) && [ "$MODEL_NU
                         fi
 
                             #### TCXB8-2214: 5G SSID down due to hostapd unresponsive
-                            if [ "$MODEL_NUM" == "CGM4981COM" ] || [ "$MODEL_NUM" == "CGM601TCOM" ] || [ "$MODEL_NUM" == "SG417DBCT" ] || [ "$MODEL_NUM" == "CGA4332COM" ]; then
+                            if [ "$MODEL_NUM" == "CGM4981COM" ] || [ "$MODEL_NUM" == "CGM601TCOM" ] || [ "$MODEL_NUM" == "SG417DBCT" ]; then
                                 buf=$(grep "5G hostapd is unresponsive" /rdklogs/logs/wifi_vendor_apps.log)
                                 if [[ "$buf" != "" ]]; then
                                     echo_t "[RDKB_PLATFORM_ERROR] : 5G hostapd is unresponsive"
