@@ -1765,6 +1765,9 @@ TEST_F(CcspTandDSelfhealDmlTest, IPv4PingServerTable_GetEntryCount)
     ASSERT_NE(g_pCosaBEManager->hSelfHeal , nullptr);
     
     PCOSA_DATAMODEL_SELFHEAL pMyObject = (PCOSA_DATAMODEL_SELFHEAL)g_pCosaBEManager->hSelfHeal;
+
+    pMyObject->IPV4PingServerList.Depth = 0;
+
     EXPECT_EQ(0, IPv4PingServerTable_GetEntryCount(NULL));
 }
 
