@@ -292,6 +292,74 @@ self_heal_meshAgent_hung() {
     fi
 }
 
+# This is a workaround to be out of the finger pointing state of telemetry2_0 being in between generic KP monitoring and uncontrolled profile assignments from cloud
+# Purpose of this selfheal is to restart telemetry2_0 if it is :
+#   1] Consuming more memory than the threshold
+#   2] Stops reporting due to issues external to telemetry2_0 causing it to go to hung state
+self_heal_t2() {
+
+    restartNeeded=0
+
+    # Floor limit on telemetry2_0 memory usage
+    t2MemMax=190
+    t2MemUsed=`top -n 1 | awk '/telemetry2_0/ {print $5}'`
+    t2MemUsedUnits=${t2MemUsed: -1}
+    t2MemUsed=${t2MemUsed%?}
+    if [ "$t2MemUsedUnits" == "g" ] || [ "$t2MemUsedUnits" == "G" ]; then
+        t2MemUsed=$((t2MemUsed*1024))
+        t2MemUsedUnits="m"
+    fi
+
+    if [ "$t2MemUsedUnits" == "m" ] || [ "$t2MemUsedUnits" == "M" ]; then
+        if [ "$t2MemUsed" -gt "$t2MemMax" ]; then
+            echo_t "[RDKB_SELFHEAL] : telemetry2_0 is consuming $t2MemUsed$t2MemUsedUnits  memory which is greater than floor limit of $t2MemMax . restarting telemetry2_0 ..."
+            restartNeeded=1
+        fi
+    fi
+
+    # Check if telemetry2_0 is hung
+    t2Pid=`pidof telemetry2_0`
+    if [ ! -z "$t2Pid" ]; then
+        # Check if last dcm config fetch is complete and telemetry2_0 is not reporting
+        if [ -f /tmp/.t2ConfigReady ] && [ ! -f /tmp/t2DcmComplete ]; then 
+            echo_t "[RDKB_SELFHEAL] : telemetry2_0 is not able to re-fetch DCM config. Set restart flag for telemetry2_0."
+            restartNeeded=1
+        fi
+
+        # Check if telemetry2_0 is hung - Below logic is based on the assumption that operations continues with 15 minute interval legacy profile  
+        # Compare the last updated time of telemetry2_0 log file with current time
+        # If the difference is more than 15 minutes, then telemetry2_0 could be potentially in hung state
+        t2LogLastUpdated=`date +%s -r /rdklogs/logs/telemetry2_0.txt.0`
+        currentTime=`date +%s`
+        timeDiff=$((currentTime-t2LogLastUpdated))
+        MAX_TIME_DIFF=1080 # 18 minutes
+        if [ "$timeDiff" -gt "$MAX_TIME_DIFF" ]; then
+            echo_t "[RDKB_SELFHEAL] : telemetry2_0 is not reporting. Set restart flag for telemetry2_0."
+            restartNeeded=1
+        fi
+    fi
+
+    # Check for rbus communication failure
+    ERROR_STRING="Received error 7 from RBUS Daemon for the object Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.Telemetry.ConfigURL"
+    if [ -f /rdklogs/logs/telemetry2_0.txt.0 ]; then
+        if [ `grep -c "$ERROR_STRING" /rdklogs/logs/telemetry2_0.txt.0` -gt 0 ]; then
+            echo_t "[RDKB_SELFHEAL] : telemetry2_0 is hung at rbus queries. Set restart flag for telemetry2_0."
+            restartNeeded=1
+        fi
+    fi
+
+
+    if [ "$restartNeeded" -eq 1 ]; then
+        echo_t "[RDKB_SELFHEAL] : Restarting telemetry2_0" 
+        echo_t "[RDKB_SELFHEAL] : Restarting telemetry2_0. Lookup in selfheal for restart reason !!!" >> /rdklogs/logs/telemetry2_0.txt.0
+        kill -9 `pidof telemetry2_0`
+        if [ -f /lib/rdk/dcm.service ]; then 
+            /lib/rdk/dcm.service
+        fi
+    fi
+
+}
+
 self_heal_dual_cron()
 {
     CRONTAB_DIR="/var/spool/cron/crontabs/"
@@ -4820,6 +4888,9 @@ self_heal_dual_cron
 self_heal_meshAgent
 self_heal_meshAgent_hung
 self_heal_sedaemon
+if [ "$T2_ENABLE" = "true" ]; then
+    self_heal_t2
+fi
 
 #checking MAPT is enabled or not
 if [ "$(syscfg get MAPT_Enable)" = "true" ]; then
