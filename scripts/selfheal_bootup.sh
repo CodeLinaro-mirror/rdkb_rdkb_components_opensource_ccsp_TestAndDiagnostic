@@ -557,7 +557,7 @@ if [ "$WAN_TYPE" != "EPON" ]; then
 	   	    check_if_brlan0_hasip=`ifconfig brlan0 | grep "inet addr"`
 
                     # l2sd0.100 is an interface specific to intel platform. Not applicable for other soc vendors.
-                    if [ "$BOX_TYPE" = "XB6" ] || [ "$BOX_TYPE" = "HUB4" ] || [ "$BOX_TYPE" = "SR300" ] || [ "$BOX_TYPE" = "SE501" ] || [ "$BOX_TYPE" = "SR213" ] || [ "$BOX_TYPE" = "WNXL11BWL" ] || [ "$BOX_TYPE" = "VNTXER5" ]
+                    if [ "$BOX_TYPE" = "XB6" ] || [ "$BOX_TYPE" = "HUB4" ] || [ "$BOX_TYPE" = "SR300" ] || [ "$BOX_TYPE" = "SE501" ] || [ "$BOX_TYPE" = "SR213" ] || [ "$BOX_TYPE" = "WNXL11BWL" ] || [ "$BOX_TYPE" = "VNTXER5" ] || [ "$BOX_TYPE" = "SCER11BEL" ]
                     then
                         check_if_l2sd0_100_created="NotApplicable"
                         check_if_l2sd0_100_up="NotApplicable"
@@ -627,7 +627,7 @@ if [ "$WAN_TYPE" != "EPON" ]; then
 				check_if_brlan1_hasip=`ifconfig brlan1 | grep "inet addr"`
 			
 				# l2sd0.101 is an intel specific interface. Not applicable for other soc vendors.
-				if [ "$BOX_TYPE" = "XB6" ] || [ "$BOX_TYPE" = "VNTXER5" ]
+				if [ "$BOX_TYPE" = "XB6" ] || [ "$BOX_TYPE" = "VNTXER5" ] || [ "$BOX_TYPE" = "SCER11BEL" ]
 				then
 					check_if_l2sd0_101_created="NotApplicable"
 					check_if_l2sd0_101_up="NotApplicable"
