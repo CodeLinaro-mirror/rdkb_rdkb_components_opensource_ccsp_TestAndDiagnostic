@@ -396,6 +396,12 @@ self_heal_sedaemon()
 
 xle_device_mode=0
 if [ "$BOX_TYPE" = "WNXL11BWL" ]; then
+
+    lte_down=$(sysevent get LTE_DOWN)
+    if [ "$lte_down" = "1" ]; then
+        echo_t "[RDKB_SELFHEAL] : Rebooting device due to LTE connectivity down"
+        rebootNeeded RM LTE_DOWN LTE_DOWN 1
+    fi
     # checking device mode
     xle_device_mode=`syscfg get Device_Mode`
     if [ "$xle_device_mode" -eq "1" ]; then

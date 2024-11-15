@@ -85,15 +85,16 @@ FILE* logFp = NULL;
 
 void check_lte_provisioned(char* lte_wan,char* lte_backup_enable, char* lte_interface_enable, char* ipaddr_family)
 {
-    char *paramNames[]= { "Device.Cellular.X_RDK_Status", "Device.Cellular.X_RDK_Enable", "Device.Cellular.Interface.1.Enable", "Device.Cellular.Interface.1.X_RDK_ContextProfile.1.IpAddressFamily" };
+    char *paramNames[]= { "Device.Cellular.X_RDK_Status", "Device.Cellular.Interface.1.Enable", "Device.Cellular.Interface.1.X_RDK_ContextProfile.1.IpAddressFamily" };
     parameterValStruct_t **retVal = NULL;
     int nval;
+    char buf[8]= {0};
      int ret = CcspBaseIf_getParameterValues( 
 		bus_handle,
         CELLULAR_COMPONENT_NAME,
         CELLULAR_DBUS_PATH,
         paramNames,
-        4,
+        3,
         &nval,
         &retVal);
     if (CCSP_SUCCESS == ret)
@@ -102,23 +103,28 @@ void check_lte_provisioned(char* lte_wan,char* lte_backup_enable, char* lte_inte
         {
             strncpy(lte_wan, retVal[0]->parameterValue, strlen(retVal[0]->parameterValue) + 1);
         }
-        if(NULL != retVal[1]->parameterValue)
+        if (NULL != retVal[1]->parameterValue)
         {
-            strncpy(lte_backup_enable, retVal[1]->parameterValue, strlen(retVal[1]->parameterValue) + 1);
+            strncpy(lte_interface_enable, retVal[1]->parameterValue, strlen(retVal[1]->parameterValue) + 1);
         }
         if (NULL != retVal[2]->parameterValue)
         {
-            strncpy(lte_interface_enable, retVal[2]->parameterValue, strlen(retVal[2]->parameterValue) + 1);
-        }
-        if (NULL != retVal[3]->parameterValue)
-        {
-            strncpy(ipaddr_family, retVal[3]->parameterValue, strlen(retVal[3]->parameterValue) + 1);
+            strncpy(ipaddr_family, retVal[2]->parameterValue, strlen(retVal[2]->parameterValue) + 1);
         }
         if (retVal)
         {
             free_parameterValStruct_t(bus_handle, nval, retVal);
         }
     }
+    strcpy(lte_backup_enable,"true"); // By Default, LTE Backup is Enabled
+    if ( 0 == syscfg_get(NULL, "cellularmgr_enable", buf, sizeof(buf)))
+    {
+        if (buf[0] != '\0')
+        {
+            strcpy(lte_backup_enable,buf);
+        }
+    }
+    xle_log("[xle_self_heal] lte_backup_enable is %s\n", lte_backup_enable);
 }
 void GetInterfaceStatus( char* InterfaceStatus, char* comp_status_cmd, int size )
 {
@@ -532,6 +538,7 @@ int main(int argc,char *argv[])
             else
             {
                 xle_log("[xle_self_heal] Today's limit for cellular manager restart has exceeded\n");
+                sysevent_set(sysevent_fd, sysevent_token, "LTE_DOWN", "1", 0);
             }
         }
     }
