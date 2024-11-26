@@ -51,22 +51,25 @@ struct xle_attributes
   int cellular_restart_count;
 }xle_attributes;
 
+#define BUFLEN_128  128
+#define BUFLEN_256  256
+
 struct xle_attributes xle_params;
 static char default_wan_ifname[50];
 static char current_wan_ifname[50];
 static int            sysevent_fd = -1;
 static token_t        sysevent_token;
 int retPsmGet = CCSP_SUCCESS;
-char mesh_interface_name[128] = {0};
-char comp_status_cmd[256] = {0};
-char lte_wan_status[128] = {0};
-char lte_backup_enable[128] = {0};
-char lte_interface_enable[128]={0};
+char mesh_interface_name[BUFLEN_128] = {0};
+char comp_status_cmd[BUFLEN_256] = {0};
+char lte_wan_status[BUFLEN_128] = {0};
+char lte_backup_enable[BUFLEN_128] = {0};
+char lte_interface_enable[BUFLEN_128]={0};
 char ipaddr_family[16]={0};
 
 static char *g_Subsystem = "eRT." ;
 /* CID 282121 fix */
-char InterfaceStatus[256] = {0};
+char InterfaceStatus[BUFLEN_256] = {0};
 #define MESH_IFNAME        "br-home"
 static void*    bus_handle = NULL;
 #define CELLULAR_COMPONENT_NAME  "eRT.com.cisco.spvtg.ccsp.cellularmanager"
@@ -116,12 +119,12 @@ void check_lte_provisioned(char* lte_wan,char* lte_backup_enable, char* lte_inte
             free_parameterValStruct_t(bus_handle, nval, retVal);
         }
     }
-    strcpy(lte_backup_enable,"true"); // By Default, LTE Backup is Enabled
+    strncpy(lte_backup_enable,"true",BUFLEN_128); // By Default, LTE Backup is Enabled
     if ( 0 == syscfg_get(NULL, "cellularmgr_enable", buf, sizeof(buf)))
     {
         if (buf[0] != '\0')
         {
-            strcpy(lte_backup_enable,buf);
+            strncpy(lte_backup_enable,buf,BUFLEN_128);
         }
     }
     xle_log("[xle_self_heal] lte_backup_enable is %s\n", lte_backup_enable);
