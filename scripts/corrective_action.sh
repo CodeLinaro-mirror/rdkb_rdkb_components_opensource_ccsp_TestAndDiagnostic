@@ -673,6 +673,7 @@ resetNeeded()
     MAX_RESET_COUNT=$(syscfg get max_reset_count)
     TODAYS_RESET_COUNT=$(syscfg get todays_reset_count)
 
+    CcspHome_Security=`sysevent get HomeSecuritySupport`
     # RDKB-6012: No need to validate today's reset count
     if [ "$ProcessName" != "PING" ]; then
         TODAYS_RESET_COUNT=0
@@ -761,7 +762,7 @@ resetNeeded()
                 cd -
                 # We need to check whether to enable captive portal flag
                 checkCaptivePortal
-            elif [ "$SELFHEAL_TYPE" = "BASE" -o "$SELFHEAL_TYPE" = "SYSTEMD" ] && [ "$ProcessName" = "CcspHomeSecurity" ]; then
+            elif [ "$SELFHEAL_TYPE" = "BASE" -o "$SELFHEAL_TYPE" = "SYSTEMD" ] && [ "$ProcessName" = "CcspHomeSecurity" -a "$CcspHome_Security" != "false" ]; then
                 echo_t "RDKB_SELFHEAL : Resetting process $ProcessName"
                 CcspHomeSecurity 8081&
 

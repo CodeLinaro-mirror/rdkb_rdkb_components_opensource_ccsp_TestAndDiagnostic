@@ -1330,10 +1330,11 @@ case $SELFHEAL_TYPE in
     ;;
 esac
 
-if [ "$MODEL_NUM" = "DPC3939B" ] || [ "$MODEL_NUM" = "DPC3941B" ] || [ "$MODEL_NUM" = "CGA4332COM" ]; then
-    echo_t "Disabling CcpsHomeSecurity and CcspAdvSecurity for BWG "
+CcspHome_Security=`sysevent get HomeSecuritySupport`
+if [ "$MODEL_NUM" = "DPC3939B" ] || [ "$MODEL_NUM" = "DPC3941B" ] || [ "$MODEL_NUM" = "CGA4332COM" ] || [ "$CcspHome_Security" = "false" ]; then
+    echo_t "Disabling CcspHomeSecurity and CcspAdvSecurity for BWG"
 elif [ "$MODEL_NUM" = "CVA601ZCOM" ]; then
-    echo_t "Disabling CcpsHomeSecurity and CcspAdvSecurity for XD4 "
+    echo_t "Disabling CcspHomeSecurity and CcspAdvSecurity for XD4 "
 else
     if [ "$BOX_TYPE" != "HUB4" ] && [ "$BOX_TYPE" != "SR300" ] && [ "$BOX_TYPE" != "SE501" ]  && [ "$BOX_TYPE" != "SR213" ] && [ "$BOX_TYPE" != "WNXL11BWL" ]; then
 
