@@ -301,20 +301,27 @@ self_heal_t2() {
     restartNeeded=0
 
     # Floor limit on telemetry2_0 memory usage
-    t2MemMax=190
-    t2MemUsed=`top -n 1 | awk '/telemetry2_0/ {print $5}'`
+    t2MemMax=30000
+    # using busybox as different platforms are behaving differently with top command using -mbn1 to get the rss data
+    # using sort command and head 1 to get the highest value; there is a chance that multiple pids {
+    t2MemUsed=`busybox top -mbn 1 | grep "/usr/bin/telemetry2_0" | grep -v "grep"| awk '/telemetry2_0/ {print $4}' | sort -nr | head -n1`
     t2MemUsedUnits=${t2MemUsed: -1}
-    t2MemUsed=${t2MemUsed%?}
+    #t2MemUsed=${t2MemUsed%?}
+    # Remove the last unit only if it is a char m,M,g,G.
+    t2MemUsed=${t2MemUsed%[a-zA-Z]}
     if [ "$t2MemUsedUnits" == "g" ] || [ "$t2MemUsedUnits" == "G" ]; then
         t2MemUsed=$((t2MemUsed*1024))
         t2MemUsedUnits="m"
     fi
 
     if [ "$t2MemUsedUnits" == "m" ] || [ "$t2MemUsedUnits" == "M" ]; then
-        if [ "$t2MemUsed" -gt "$t2MemMax" ]; then
-            echo_t "[RDKB_SELFHEAL] : telemetry2_0 is consuming $t2MemUsed$t2MemUsedUnits  memory which is greater than floor limit of $t2MemMax . restarting telemetry2_0 ..."
-            restartNeeded=1
-        fi
+        t2MemUsed=$((t2MemUsed*1024))
+        t2MemUsedUnits="k"
+    fi
+
+    if [ "$t2MemUsed" -gt "$t2MemMax" ]; then
+        echo_t "[RDKB_SELFHEAL] : telemetry2_0 is consuming $t2MemUsed$t2MemUsedUnits  memory which is greater than floor limit of $t2MemMax . restarting telemetry2_0 ..."
+        restartNeeded=1
     fi
 
     # Check if telemetry2_0 is hung
